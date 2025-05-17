@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>영단어 퀴즈 게임</title>
+  <style>
+    /* 배경 & 전체 */
+    body {
+      margin: 0; padding: 0;
+      background: #FFFAF0;
+      font-family: '맑은 고딕', Apple SD Gothic Neo, sans-serif;
+    }
+    .container {
+      max-width: 500px;
+      margin: 40px auto;
+      padding: 20px;
+      background: #fff;
+      border-radius: 20px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      text-align: center;
+    }
+    h1 { margin-bottom: 20px; color: #FF6F91; }
+    /* 버튼 스타일 */
+    button {
+      margin: 8px;
+      padding: 10px 20px;
+      font-size: 1em;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      background: #FFD3B6;
+      transition: transform .1s;
+    }
+    button:hover { transform: scale(1.05); }
+    /* 입력창 */
+    input[type="text"] {
+      padding: 8px;
+      font-size: 1em;
+      border: 2px solid #FF6F91;
+      border-radius: 10px;
+      width: 80%;
+    }
+    /* 문제/보기/피드백 */
+    #question-num { font-size: 0.9em; color: #AAA; }
+    #question-area {
+      margin: 20px 0;
+      font-size: 1.3em;
+      color: #FF6F91;
+    }
+    .options { display: flex; flex-direction: column; }
+    .options button { background: #CBE7E0; }
+    #feedback {
+      margin: 15px 0;
+      font-size: 1.1em;
+      min-height: 1.2em;
+    }
+    #next-btn { background: #A29BFE; }
+    /* 결과화면 */
+    #result-screen h2 { color: #FF6F91; }
+    #response { margin-top: 10px; font-size: 0.9em; color: #333; }
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    <!-- 시작 화면 -->
+    <div id="start-screen">
+      <h1>영단어 퀴즈</h1>
+      <p>이름을 입력하고 시작 버튼을 눌러주세요!</p>
+      <input type="text" id="name-input" placeholder="이름"/>
+      <br/>
+      <button id="start-btn">시작하기</button>
+    </div>
+
+    <!-- 퀴즈 화면 -->
+    <div id="quiz-screen" style="display:none;">
+      <div id="question-num"></div>
+      <div id="question-area"></div>
+      <div class="options" id="options-area"></div>
+      <div id="input-area" style="margin:10px 0;"></div>
+      <div id="feedback"></div>
+      <button id="next-btn" style="display:none;">다음</button>
+    </div>
+
+    <!-- 결과 화면 -->
+    <div id="result-screen" style="display:none;">
+      <h2>🎉 결과 🎉</h2>
+      <p id="score-display"></p>
+      <button id="submit-btn">점수 전송</button>
+      <p id="response"></p>
+    </div>
+
+  </div>
+
+  <script>
+    // --- 1) 단어 목록 (첫 번째 시트 50개 + 두 번째 시트 50개 = 100개) ---
+    const vocabList = [
+      {word:"fierce",     meaning:"격렬한"},
+      {word:"greed",      meaning:"탐욕"},
+      {word:"oval",       meaning:"타원형의"},
+      {word:"odd",        meaning:"이상한, 홀수의"},
+      {word:"forehead",   meaning:"이마"},
+      {word:"ignorant",   meaning:"무지한, 무식한"},
+      {word:"beard",      meaning:"턱수염"},
+      {word:"wrist",      meaning:"손목"},
+      {word:"thigh",      meaning:"허벅지"},
+      {word:"wrinkle",    meaning:"주름"},
+      {word:"even",       meaning:"짝수의"},
+      {word:"peculiar",   meaning:"이상한"},
+      {word:"ambition",   meaning:"야망"},
+      {word:"offensive",  meaning:"공격적인"},
+      {word:"modest",     meaning:"겸손한"},
+      {word:"incapable",  meaning:"~할 수 없는"},
+      {word:"appear",     meaning:"~인 것 같다, 나타나다"},
+      {word:"mood",       meaning:"분위기"},
+      {word:"sorrow",     meaning:"슬픔"},
+      {word:"emotion",    meaning:"감정"},
+      {word:"anxious",    meaning:"걱정하는, 불안한"},
+      {word:"grief",      meaning:"슬픔"},
+      {word:"terrible",   meaning:"끔찍한"},
+      {word:"ashamed",    meaning:"부끄러워하는"},
+      {word:"depression", meaning:"우울, 불경기"},
+      {word:"uneasy",     meaning:"불안한"},
+      {word:"depressed",  meaning:"우울한"},
+      {word:"weep",       meaning:"울다"},
+      {word:"annoy",      meaning:"짜증나게 하다"},
+      {word:"relieve",    meaning:"완화하다"},
+      {word:"amaze",      meaning:"놀라게 하다"},
+      {word:"sentiment",  meaning:"감정"},
+      {word:"envy",       meaning:"부러워하다"},
+      {word:"relief",     meaning:"안심"},
+      {word:"jealous",    meaning:"질투하는"},
+      {word:"nerve",      meaning:"신경, 용기"},
+      {word:"envious",    meaning:"부러워하는"},
+      {word:"be jealous of",meaning:"~을 질투하다"},
+      {word:"temper",     meaning:"화, 기질"},
+      {word:"resent",     meaning:"분개하다"},
+      {word:"desperate",  meaning:"절망적인"},
+      {word:"awful",      meaning:"아주 심한"},
+      {word:"resentful",  meaning:"분개하는"},
+      {word:"miserable",  meaning:"비참한"},
+      {word:"disgust",    meaning:"역겹게 하다"},
+      {word:"astound",    meaning:"놀라게 하다"},
+      {word:"frighten",   meaning:"무섭게 하다"},
+      {word:"panic",      meaning:"공포에 질리다"},
+      {word:"disgusting", meaning:"역겨운"},
+      {word:"fright",     meaning:"공포"},
+      // 두 번째 시트
+      {word:"awake",       meaning:"깨어 있는, 깨우다"},
+      {word:"remind",      meaning:"상기시키다"},
+      {word:"niece",       meaning:"조카"},
+      {word:"engage",      meaning:"약속하다, 종사하다"},
+      {word:"whisper",     meaning:"속삭이다"},
+      {word:"celebrate",   meaning:"기념하다"},
+      {word:"anniversary", meaning:"기념일"},
+      {word:"fate",        meaning:"운명"},
+      {word:"advise",      meaning:"충고하다"},
+      {word:"lifespan",    meaning:"일생"},
+      {word:"elder",       meaning:"연장자, 어른"},
+      {word:"parental",    meaning:"부모의"},
+      {word:"breed",       meaning:"낳다, 기르다, 품종"},
+      {word:"obedient",    meaning:"순종하는"},
+      {word:"treat",       meaning:"대우하다, 치료하다"},
+      {word:"interact",    meaning:"상호작용하다"},
+      {word:"contact",     meaning:"연락, 접촉"},
+      {word:"relationship",meaning:"관계"},
+      {word:"funeral",     meaning:"장례식"},
+      {word:"behave",      meaning:"행동하다"},
+      {word:"sibling",     meaning:"형제자매"},
+      {word:"resemble",    meaning:"닮다"},
+      {word:"background",  meaning:"배경"},
+      {word:"daycare",     meaning:"보육의"},
+      {word:"pregnant",    meaning:"임신한"},
+      {word:"nurture",     meaning:"양육하다"},
+      {word:"accompany",   meaning:"동행하다"},
+      {word:"mature",      meaning:"성숙한"},
+      {word:"spouse",      meaning:"배우자"},
+      {word:"bouquet",     meaning:"꽃다발"},
+      {word:"shape",       meaning:"모양, 모습"},
+      {word:"appearance",  meaning:"외관, 출현"},
+      {word:"personality", meaning:"성격, 개성"},
+      {word:"gender",      meaning:"성별"},
+      {word:"impression",  meaning:"인상"},
+      {word:"typical",     meaning:"전형적인"},
+      {word:"capable",     meaning:"유능한, ~능력있는"},
+      {word:"attractive",  meaning:"매력적인, 사람을끄는"},
+      {word:"active",      meaning:"적극적인, 활동적인"},
+      {word:"passive",     meaning:"수동적인"},
+      {word:"diligent",    meaning:"부지런한"},
+      {word:"bold",        meaning:"대담한"},
+      {word:"confident",   meaning:"확신하는"},
+      {word:"impatient",   meaning:"성급한"},
+      {word:"ambitious",   meaning:"야망 있는"},
+      {word:"brilliant",   meaning:"훌륭한"},
+      {word:"elegant",     meaning:"우아한"},
+      {word:"humble",      meaning:"겸손한, 초라한"},
+      {word:"arrogant",    meaning:"오만한"},
+      {word:"aggressive",  meaning:"공격적인"}
+    ];
+
+    // --- 전역 변수 ---
+    let playerName = "";
+    let currentSet = 1;
+    let qIndex = 0;
+    let score = 0;
+    let startTime;
+
+    // --- 유틸: 배열 섞기 ---
+    function shuffle(arr) {
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    }
+
+    // --- 시작 ---
+    document.getElementById("start-btn").onclick = () => {
+      const nameInput = document.getElementById("name-input").value.trim();
+      if (!nameInput) { alert("이름을 입력해주세요!"); return; }
+      playerName = nameInput;
+      document.getElementById("start-screen").style.display = "none";
+      document.getElementById("quiz-screen").style.display = "block";
+      startTime = Date.now();
+      runQuestion();
+    };
+
+    // --- 문제 실행 ---
+    function runQuestion() {
+      const total = vocabList.length;
+      document.getElementById("question-num").innerText = 
+        `${currentSet}세트: ${qIndex+1} / ${total}`;
+      document.getElementById("feedback").innerText = "";
+      document.getElementById("next-btn").style.display = "none";
+      
+      const item = vocabList[qIndex];
+      const qaArea = document.getElementById("question-area");
+      const optsArea = document.getElementById("options-area");
+      const inputArea = document.getElementById("input-area");
+      optsArea.innerHTML = "";
+      inputArea.innerHTML = "";
+
+      // 1세트: 객관식
+      if (currentSet === 1) {
+        qaArea.innerText = `📝 단어: ${item.word}`;
+        // 보기 4개 뽑기
+        const choices = shuffle([
+          item.meaning,
+          ...shuffle(vocabList.filter(v=>v.meaning!==item.meaning))
+            .slice(0,3).map(v=>v.meaning)
+        ]);
+        choices.forEach(ch => {
+          const btn = document.createElement("button");
+          btn.innerText = ch;
+          btn.onclick = () => checkMC(ch);
+          optsArea.appendChild(btn);
+        });
+      }
+      // 2~4세트: 주관식
+      else {
+        qaArea.innerText = `📝 뜻: ${item.meaning}`;
+        // 가림 비율
+        let ratio = 1;
+        if (currentSet === 2) ratio = 0.2;
+        if (currentSet === 3) ratio = 0.5;
+        if (currentSet === 4) ratio = 1.0;
+        const masked = maskWord(item.word, ratio);
+        const p = document.createElement("p");
+        p.innerText = masked;
+        inputArea.appendChild(p);
+        const inp = document.createElement("input");
+        inp.type = "text";
+        inp.placeholder = "정답을 입력하세요";
+        inputArea.appendChild(inp);
+        const btn = document.createElement("button");
+        btn.innerText = "제출";
+        btn.onclick = () => checkInput(inp.value.trim());
+        inputArea.appendChild(btn);
+      }
+    }
+
+    // --- 단어 가리기 함수 ---
+    function maskWord(word, hideRatio) {
+      const arr = word.split("");
+      const hideCount = Math.floor(arr.length * hideRatio);
+      const idxs = [];
+      while (idxs.length < hideCount) {
+        const i = Math.floor(Math.random() * arr.length);
+        if (!idxs.includes(i)) idxs.push(i);
+      }
+      idxs.forEach(i => arr[i] = "_");
+      return arr.join("");
+    }
+
+    // --- 객관식 정답 체크 ---
+    function checkMC(choice) {
+      const item = vocabList[qIndex];
+      const fb = document.getElementById("feedback");
+      if (choice === item.meaning) {
+        score += 10;
+        fb.innerText = "🎉 정답입니다!";
+      } else {
+        fb.innerText = `✖ 틀렸습니다! 정답: ${item.meaning}`;
+      }
+      document.getElementById("next-btn").style.display = "inline-block";
+    }
+
+    // --- 주관식 정답 체크 ---
+    function checkInput(answer) {
+      const item = vocabList[qIndex];
+      const fb = document.getElementById("feedback");
+      if (answer.toLowerCase() === item.word.toLowerCase()) {
+        score += 10;
+        fb.innerText = "🎉 정답입니다!";
+      } else {
+        fb.innerText = `✖ 틀렸습니다! 정답: ${item.word}`;
+      }
+      document.getElementById("next-btn").style.display = "inline-block";
+    }
+
+    // --- 다음 문제 / 세트 전환 or 결과 ---
+    document.getElementById("next-btn").onclick = () => {
+      qIndex++;
+      if (qIndex < vocabList.length) {
+        runQuestion();
+      } else {
+        if (currentSet < 4) {
+          currentSet++;
+          qIndex = 0;
+          runQuestion();
+        } else {
+          showResult();
+        }
+      }
+    };
+
+    // --- 결과 화면 ---
+    function showResult() {
+      document.getElementById("quiz-screen").style.display = "none";
+      document.getElementById("result-screen").style.display = "block";
+      const elapsed = Math.floor((Date.now() - startTime) / 1000);
+      document.getElementById("score-display").innerText = 
+        `${playerName}님, 총 점수: ${score}점 (소요시간: ${elapsed}초)`;
+    }
+
+    // --- 점수 전송 버튼 ---
+    document.getElementById("submit-btn").onclick = () => {
+      const elapsed = Math.floor((Date.now() - startTime) / 1000);
+      saveData("vocabGame", playerName, score, elapsed);
+    };
+
+    // --- 제공해주신 saveData 함수 ---
+    function saveData(game, name, score, elapsedTime) {
+      const FUNCTION_URL = "https://us-central1-record-f420d.cloudfunctions.net/report";
+      const requestData = {
+        game,
+        name,
+        score: parseInt(score, 10),
+        elapsedTime: parseInt(elapsedTime, 10)
+      };
+      try {
+        const response = fetch(FUNCTION_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(requestData)
+        });
+        response.then(res => res.json()).then(data => {
+          if (response.ok) {
+            document.getElementById('response').innerText =
+              `성공: ${JSON.stringify(data, null, 2)}`;
+          } else {
+            document.getElementById('response').innerText =
+              `오류: ${JSON.stringify(data, null, 2)}`;
+          }
+        });
+      } catch (error) {
+        console.error('요청 실패:', error);
+        document.getElementById('response').innerText =
+          `네트워크 오류: ${error.message}`;
+      }
+    }
+  </script>
+</body>
+</html>
